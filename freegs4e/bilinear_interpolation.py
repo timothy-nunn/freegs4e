@@ -1,7 +1,14 @@
 import numpy as np
-import numba
 
-@numba.njit(cache=True)
+try:
+    from numba import njit, prange
+except ImportError:
+    def njit(*args, **kwargs):
+        return lambda f: f
+    
+    prange = range
+
+@njit(cache=True, fastmath=True, parallel=True)
 def biliint(R, Z, psi, points):
     """Simple bilinear interpolation of 2d map
 
@@ -35,8 +42,14 @@ def biliint(R, Z, psi, points):
     points = points.reshape(2, -1)
     len_points = np.shape(points)[1]
 
-    points_R = R1d - points[:1, :]
-    points_Z = Z1d.T - points[1:2, :]
+    points_R = (
+        np.repeat(R1d, len_points).reshape((nx, len_points)) 
+        - np.repeat(points[:1, :], nx).reshape((len_points, nx)).T
+    )
+    points_Z = (
+        np.repeat(Z1d.T, len_points).reshape((ny, len_points)) 
+        - np.repeat(points[1:2, :], ny).reshape((len_points, ny)).T
+    )
 
     idxs_R = np.sum(points_R < 0, axis=0)
     idxs_Z = np.sum(points_Z < 0, axis=0)
@@ -46,7 +59,7 @@ def biliint(R, Z, psi, points):
 
     qq = np.empty((len_points, 2, 2))
 
-    for i in numba.prange(len_points):
+    for i in prange(len_points):
         qq[i, 0, 0] = psi[idxs_R[i] - 1, idxs_Z[i] - 1]
         qq[i, 0, 1] = psi[idxs_R[i] - 1, idxs_Z[i]]
         qq[i, 1, 0] = psi[idxs_R[i], idxs_Z[i] - 1]
@@ -54,20 +67,21 @@ def biliint(R, Z, psi, points):
 
 
     xx = np.empty((len_points, 2))
-    for i in numba.prange(len_points):
+    for i in prange(len_points):
         xx[i, 0] = points_R[idxs_R[i], i]
         xx[i, 1] = points_R[idxs_R[i] - 1, i]
-    
-    xx = xx * np.array([[1, -1]])
+
+    xx[:, 1] *= -1
 
     yy = np.empty((len_points, 2))
-    for i in numba.prange(len_points):
+    for i in prange(len_points):
         yy[i, 0] = points_Z[idxs_Z[i], i]
         yy[i, 1] = points_Z[idxs_Z[i] - 1, i]
 
-    yy = yy * np.array([[1, -1]])
+    yy[:, 1] *= -1
 
+    yy_shape = np.stack((yy, yy), 1)
     vals = (
-        np.sum(np.sum(qq * yy[:, np.newaxis, :], axis=-1) * xx, axis=-1) / dRdZ
+        np.sum(np.sum(qq * yy_shape, axis=-1) * xx, axis=-1) / dRdZ
     )
     return vals.reshape(points_shape[1:])
