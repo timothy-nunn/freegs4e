@@ -961,7 +961,7 @@ def find_psisurface(eq, psifunc, r0, z0, r1, z1, psival=1.0, n=100, axis=None):
     if axis is not None:
         axis.plot(r, z)
 
-    pnorm = psifunc(r, z, grid=False)
+    pnorm = psifunc(np.column_stack((r, z)))
 
     if hasattr(psival, "__len__"):
         pass
@@ -1026,7 +1026,9 @@ def find_separatrix(eq, ntheta=20, axis=None, psival=1.0):
 
     psinorm = (psi - opoint[0][2]) / (psi_boundary - opoint[0][2])
 
-    psifunc = interpolate.RectBivariateSpline(eq.R[:, 0], eq.Z[0, :], psinorm)
+    psifunc = interpolate.RegularGridInterpolator(
+        (eq.R[:, 0], eq.Z[0, :]), psinorm, bounds_error=False, fill_value=None
+    )
 
     r0, z0 = opoint[0][0:2]
 
@@ -1117,8 +1119,11 @@ def find_safety(
     else:
         psinormal = (psi - opoint[0][2]) / (xpoint[0][2] - opoint[0][2])
 
-    psifunc = interpolate.RectBivariateSpline(
-        eq.R[:, 0], eq.Z[0, :], psinormal
+    psifunc = interpolate.RegularGridInterpolator(
+        (eq.R[:, 0], eq.Z[0, :]),
+        psinormal,
+        bounds_error=False,
+        fill_value=None,
     )
 
     r0, z0 = opoint[0][0:2]
