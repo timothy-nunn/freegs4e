@@ -25,7 +25,16 @@ from numpy import clip, pi, sqrt, zeros
 from scipy.sparse import eye, lil_matrix
 
 # elliptic integrals of first and second kind (K and E)
-from scipy.special import ellipe, ellipk
+from .fast_elliptic_integrals import ellipe, ellipk
+
+try:
+    from numba import njit, vectorize
+except ImportError:
+
+    def njit(*args, **kwargs):
+        return lambda f: f
+
+    vectorize = njit
 
 # magnetic permeability of free space
 mu0 = 4e-7 * pi
@@ -386,6 +395,7 @@ class GSsparse4thOrder:
         return A.tocsr()
 
 
+@njit(cache=True, fastmath=True)
 def Greens(Rc, Zc, R, Z):
     """
     Calculate poloidal flux at (R,Z) due to a single unit of current at
@@ -434,6 +444,7 @@ def Greens(Rc, Zc, R, Z):
     )
 
 
+@njit(cache=True, fastmath=True)
 def GreensBz(Rc, Zc, R, Z, eps=1e-4):
     """
     Calculate vertical magnetic field at (R,Z) due to a single unit of current at
@@ -467,6 +478,7 @@ def GreensBz(Rc, Zc, R, Z, eps=1e-4):
     )
 
 
+@njit(cache=True, fastmath=True)
 def GreensBr(Rc, Zc, R, Z, eps=1e-4):
     """
     Calculate radial magnetic field at (R,Z) due to a single unit of current at
@@ -500,6 +512,7 @@ def GreensBr(Rc, Zc, R, Z, eps=1e-4):
     )
 
 
+@njit(cache=True, fastmath=True)
 def GreensdBzdr(Rc, Zc, R, Z, eps=2e-3):
     """
     Calculate radial derivative of vertical magnetic field at (R,Z) due to a
@@ -532,6 +545,7 @@ def GreensdBzdr(Rc, Zc, R, Z, eps=2e-3):
     )
 
 
+@njit(cache=True, fastmath=True)
 def GreensdBrdz(Rc, Zc, R, Z, eps=2e-3):
     """
     Calculate vertical derivative of radial magnetic field at (R,Z) due to a
@@ -565,6 +579,7 @@ def GreensdBrdz(Rc, Zc, R, Z, eps=2e-3):
     # return GreensdBzdr(Rc, Zc, R, Z, eps)
 
 
+@njit(cache=True, fastmath=True)
 def GreensdBzdz(Rc, Zc, R, Z, eps=2e-3):
     """
     Calculate vertical derivative of vertical magnetic field at (R,Z) due to a
@@ -597,6 +612,7 @@ def GreensdBzdz(Rc, Zc, R, Z, eps=2e-3):
     )
 
 
+@njit(cache=True, fastmath=True)
 def GreensdBrdr(Rc, Zc, R, Z, eps=2e-3):
     """
     Calculate radial derivative of radial magnetic field at (R,Z) due to a
