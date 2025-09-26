@@ -140,21 +140,33 @@ class Equilibrium:
         # assign plasma current
         self._current = current
 
+        self.order = order
+
+        self.createVcycle()
+
+    def createVcycle(self):
         # deinfe the GS solver
-        if order == 2:
-            generator = GSsparse(Rmin, Rmax, Zmin, Zmax)
-        elif order == 4:
-            generator = GSsparse4thOrder(Rmin, Rmax, Zmin, Zmax)
+        if self.order == 2:
+            generator = GSsparse(self.Rmin, self.Rmax, self.Zmin, self.Zmax)
+        elif self.order == 4:
+            generator = GSsparse4thOrder(
+                self.Rmin, self.Rmax, self.Zmin, self.Zmax
+            )
         else:
             raise ValueError(
                 "Invalid choice of order ({}). Valid values are 2 or 4.".format(
-                    order
+                    self.order
                 )
             )
-        self.order = order
 
         self._solver = multigrid.createVcycle(
-            nx, ny, generator, nlevels=1, ncycle=1, niter=2, direct=True
+            self.nx,
+            self.ny,
+            generator,
+            nlevels=1,
+            ncycle=1,
+            niter=2,
+            direct=True,
         )
 
     def create_psi_plasma_default(
